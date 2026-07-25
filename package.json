@@ -1,0 +1,15 @@
+{
+  "name": "karcari-flagship-10of10",
+  "version": "10.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "16.2.11",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  }
+}
