@@ -1,14 +1,15 @@
 import "./globals.css";
-import { Cormorant_Garamond, Manrope } from "next/font/google";
 
-const body = Manrope({ subsets: ["latin"], variable: "--font-body", display: "swap" });
-const display = Cormorant_Garamond({ subsets: ["latin"], variable: "--font-display", display: "swap", weight: ["500", "600", "700"] });
-
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.karcari.in";
 export const metadata = {
-  title: "Karcari — Better Mornings. Better Ingredients.",
-  description: "Explore Karcari ready-to-cook consumer foods, dehydrated powders and flakes, distribution, institutional supply and private-label opportunities."
+ metadataBase: new URL(siteUrl),
+ title: { default: "Karcari Products | Ready-to-Cook Premixes & Ingredient Powders", template: "%s | Karcari" },
+ description: "Discover Karcari ready-to-cook dosa, chilla, soup, smoothie and pancake premixes, traditional favourites and B2B ingredient powders.",
+ applicationName: "Karcari Products",
+ robots: { index: true, follow: true },
+ openGraph: { type:"website", locale:"en_IN", title:"Karcari Products | Good Food, Made Easier", description:"Wholesome ready-to-cook premixes inspired by Indian food traditions.", images:[{url:"/brand/karcari-logo.png",width:641,height:916,alt:"Karcari Products"}] },
+ twitter: {card:"summary", title:"Karcari Products | Good Food, Made Easier"},
 };
-
 export default function RootLayout({ children }) {
-  return <html lang="en"><body className={`${body.variable} ${display.variable}`}>{children}</body></html>;
+ return <html lang="en"><body><a className="skip-link" href="#main-content">Skip to content</a>{children}</body></html>;
 }

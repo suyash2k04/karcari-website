@@ -1,4 +1,5 @@
 import { socialLinks } from "@/data/products";
+import { buildEmailLink, INDIA_MART_URL, RETAIL_URL } from "@/lib/contact";
 
 function Arrow() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M9 5h10v10" /></svg>;
@@ -15,43 +16,58 @@ function Youtube() {
 
 export default function Footer() {
   return (
-    <footer className="site-footer">
-      <div className="footer-cta shell">
-        <div>
-          <p className="eyebrow">A better business conversation starts here</p>
-          <h2>Tell us what you are building.</h2>
-        </div>
-        <a href="mailto:connect@karcari.com?subject=Business%20Conversation%20with%20Karcari">connect@karcari.com <Arrow /></a>
-      </div>
-
-      <div className="footer-body shell">
-        <div className="footer-brand">
+    <footer className="site-footer premium-footer">
+      <div className="shell premium-footer-grid">
+        <section className="premium-footer-brand">
           <div className="footer-lockup"><span>क</span><strong>karcari</strong></div>
-          <p>Consumer-ready food products and commercially relevant dehydrated ingredients from Karcari Products LLP, Pune.</p>
-          <a className="footer-retail" href="https://www.karcari.in/products" target="_blank" rel="noreferrer">Visit Karcari.in for retail shopping <Arrow /></a>
-        </div>
+          <p>Ready-to-cook Indian premixes and ingredients for food businesses.</p>
+          <a className="premium-footer-retail" href={RETAIL_URL} target="_blank" rel="noopener noreferrer">
+            Shop the retail range <Arrow />
+          </a>
+        </section>
 
-        <div className="footer-links">
-          <div><small>EXPLORE</small><a href="#thinking">Why Karcari</a><a href="#pantry">Consumer Pantry</a><a href="#ingredients">Ingredient Studio</a><a href="#business">Partnerships</a></div>
-          <div><small>BUSINESS</small><a href="mailto:connect@karcari.com?subject=Bulk%20Ingredient%20Enquiry">Bulk ingredients</a><a href="mailto:connect@karcari.com?subject=Distribution%20Partnership%20Enquiry">Distribution</a><a href="mailto:connect@karcari.com?subject=Private%20Label%20Enquiry">Private label</a><a href="mailto:connect@karcari.com?subject=Institutional%20Supply%20Enquiry">Institutional supply</a></div>
-          <div><small>CONTACT</small><strong>Karcari Products LLP</strong><span>2nd Floor, J-536/11, Khande Wasti, MIDC Bhosari, Pune, Maharashtra 411026</span><a href="tel:+918956151155">+91 89561 51155</a><a href="mailto:connect@karcari.com">connect@karcari.com</a></div>
-        </div>
+        <section className="premium-footer-panel">
+          <small>EXPLORE</small>
+          <a href="#top">Brand</a>
+          <a href="#premix-range">Premix Range</a>
+          <a href="#powders">Ingredient Powders</a>
+          <a href="#business">Partnerships</a>
+          <a href="#reviews">Reviews</a>
+        </section>
+
+        <section className="premium-footer-panel">
+          <small>BUSINESS</small>
+          <a href={buildEmailLink("Bulk Ingredient Enquiry")}>Bulk ingredients</a>
+          <a href={buildEmailLink("Distribution Partnership Enquiry")}>Distribution</a>
+          <a href={buildEmailLink("Private Label Enquiry")}>Private label</a>
+          <a href={buildEmailLink("Institutional Supply Enquiry")}>Institutional supply</a>
+        </section>
+
+        <section className="premium-footer-panel premium-footer-address">
+          <small>CONTACT</small>
+          <strong>Karcari Products LLP</strong>
+          <p>2nd Floor, J-536/11, Khande Wasti, MIDC Bhosari, Pune, Maharashtra 411026</p>
+          <a href="tel:+918956151155">+91 89561 51155</a>
+          <a href={buildEmailLink("Karcari Product Enquiry")}>connect@karcari.com</a>
+        </section>
       </div>
 
-      <div className="footer-social shell">
-        <div><small>FOLLOW KARCARI</small><p>Product stories, recipes and brand updates.</p></div>
+      <div className="shell premium-footer-social">
+        <div>
+          <small>FOLLOW KARCARI</small>
+          <p>Product stories, recipes and brand updates.</p>
+        </div>
         <nav aria-label="Karcari social media">
-          <a href={socialLinks.instagram} target="_blank" rel="noreferrer"><Instagram/><span><small>Instagram</small><strong>@karcariproducts</strong></span><Arrow/></a>
-          <a href={socialLinks.facebook} target="_blank" rel="noreferrer"><Facebook/><span><small>Facebook</small><strong>Karcari Products</strong></span><Arrow/></a>
-          <a href={socialLinks.youtube} target="_blank" rel="noreferrer"><Youtube/><span><small>YouTube</small><strong>Watch brand film</strong></span><Arrow/></a>
+          <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer"><Instagram/><span><small>Instagram</small><strong>@karcariproducts</strong></span><Arrow/></a>
+          <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer"><Facebook/><span><small>Facebook</small><strong>Karcari Products</strong></span><Arrow/></a>
+          <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer"><Youtube/><span><small>YouTube</small><strong>Watch brand film</strong></span><Arrow/></a>
         </nav>
       </div>
 
-      <div className="footer-word" aria-hidden="true">KARCARI</div>
-      <div className="footer-bottom shell">
+      <div className="footer-bottom shell premium-footer-bottom">
         <span>© 2026 Karcari Products LLP. All rights reserved.</span>
-        <div><a href="https://www.karcari.in/privacy-policy" target="_blank" rel="noreferrer">Privacy</a><a href="https://www.karcari.in/terms-and-conditions" target="_blank" rel="noreferrer">Terms</a></div>
-        <span>Karcari.com for brand & B2B · Karcari.in for retail</span>
+        <div><a href="https://www.karcari.in/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy</a><a href="https://www.karcari.in/terms-and-conditions" target="_blank" rel="noopener noreferrer">Terms</a></div>
+        <div><a href={INDIA_MART_URL || "#indiamart"} target={INDIA_MART_URL ? "_blank" : undefined} rel={INDIA_MART_URL ? "noopener noreferrer" : undefined}>IndiaMART</a><a href="/admin">Admin sign-in</a></div>
       </div>
     </footer>
   );

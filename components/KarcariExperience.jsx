@@ -1,327 +1,197 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ingredientProducts, retailProducts } from "@/data/products";
+import { useEffect, useRef, useState } from "react";
+import { premixGroups } from "@/data/products";
+import { buildEmailLink, buildWhatsappLink, INDIA_MART_URL, RETAIL_URL } from "@/lib/contact";
+import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 
-function Arrow({ down = false }) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={down ? "arrow-down" : ""}>
-      <path d={down ? "M12 4v16m-6-6 6 6 6-6" : "M5 19 19 5M9 5h10v10"} />
-    </svg>
-  );
-}
-
-function Check() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4.2 4.2L19 6.8" /></svg>;
-}
-
-function Mail() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>;
-}
-
-const enquiryLink = (product) => {
-  const subject = encodeURIComponent(`Karcari B2B Enquiry — ${product}`);
-  const body = encodeURIComponent(
-    `Hello Karcari Team,\n\nI would like to enquire about ${product}.\n\nCompany name:\nRequired format / grade:\nEstimated quantity:\nApplication:\nLocation:\nPhone:\n\nRegards,`
-  );
-  return `mailto:connect@karcari.com?subject=${subject}&body=${body}`;
+const categoryLabels = {
+  breakfast: "Dosa & Chilla",
+  specialty: "Specialty",
+  soups: "Soups",
+  smoothies: "Smoothies",
+  pancakes: "Pancakes",
 };
 
-export default function KarcariExperience() {
-  const [active, setActive] = useState(0);
-  const [manual, setManual] = useState(false);
-  const theatreRef = useRef(null);
-  const selected = retailProducts[active];
-
-  const theme = useMemo(() => ({
-    "--accent": selected.accent,
-    "--accent-2": selected.accent2,
-    "--glow": selected.glow,
-    "--deep": selected.deep
-  }), [selected]);
+export default function KarcariExperience({ premixProducts, ingredientProducts }) {
+  const heroRef = useRef(null);
+  const [motionPaused, setMotionPaused] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const indiaMartProducts = premixProducts.filter(product => product.indiaMartUrl);
+  const catalogRef = useRef(null);
+  const filters = [{ id: "all", title: "All premixes" }, ...premixGroups];
+  const visible = filter === "all" ? premixProducts : premixProducts.filter(product => product.group === filter);
 
   useEffect(() => {
-    if (manual) return undefined;
-    const timer = window.setInterval(() => {
-      setActive((current) => (current + 1) % retailProducts.length);
-    }, 7000);
-    return () => window.clearInterval(timer);
-  }, [manual]);
-
-  useEffect(() => {
-    const nodes = document.querySelectorAll("[data-reveal]");
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) entry.target.classList.add("is-visible");
-      });
-    }, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
-    nodes.forEach((node) => observer.observe(node));
+    if (!window.IntersectionObserver || !window.matchMedia || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const observer = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        entry.target.classList.add("reveal-in");
+        observer.unobserve(entry.target);
+      }
+    }, { threshold: 0.12 });
+    catalogRef.current.querySelectorAll("[data-reveal]").forEach(element => observer.observe(element));
     return () => observer.disconnect();
   }, []);
 
-  const choose = (index) => {
-    setManual(true);
-    setActive(index);
-  };
+  function moveHero(event) {
+    if (motionPaused || event.pointerType !== "mouse" || !window.matchMedia("(hover: hover) and (prefers-reduced-motion: no-preference)").matches) return;
+    const hero = event.currentTarget;
+    const bounds = hero.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+    hero.style.setProperty("--hero-x", x.toFixed(3));
+    hero.style.setProperty("--hero-y", y.toFixed(3));
+  }
 
-  const onPointerMove = (event) => {
-    const node = theatreRef.current;
-    if (!node || window.innerWidth < 900) return;
-    const rect = node.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / rect.width - 0.5;
-    const y = (event.clientY - rect.top) / rect.height - 0.5;
-    node.style.setProperty("--mx", `${x * 14}px`);
-    node.style.setProperty("--my", `${y * 10}px`);
-    node.style.setProperty("--rx", `${-y * 2.5}deg`);
-    node.style.setProperty("--ry", `${x * 4}deg`);
-  };
-
-  const resetPointer = () => {
-    const node = theatreRef.current;
-    if (!node) return;
-    node.style.setProperty("--mx", "0px");
-    node.style.setProperty("--my", "0px");
-    node.style.setProperty("--rx", "0deg");
-    node.style.setProperty("--ry", "0deg");
-  };
+  function resetHero() {
+    heroRef.current.style.removeProperty("--hero-x");
+    heroRef.current.style.removeProperty("--hero-y");
+  }
 
   return (
-    <>
-      <section className="hero" id="top" style={theme}>
-        <div className="hero-scenes" aria-hidden="true">
-          {retailProducts.map((product, index) => (
-            <Image
-              key={product.id}
-              src={product.scene}
-              alt=""
-              fill
-              priority={index < 2}
-              sizes="100vw"
-              className={index === active ? "is-active" : ""}
-            />
-          ))}
-          <div className="hero-scene-shade" />
-          <div className="hero-noise" />
+    <div ref={catalogRef}>
+      <section className="catalog-hero" id="top" ref={heroRef} aria-labelledby="hero-heading"
+        data-motion-paused={motionPaused} onPointerMove={moveHero} onPointerLeave={resetHero}>
+        <div className="hero-photo">
+          <div className="hero-camera">
+            <Image src="/brand/karcari-premix-hero.webp" alt="" fill sizes="100vw" quality={85} preload />
+          </div>
         </div>
-
-        <div className="hero-layout shell">
+        <div className="hero-inner">
           <div className="hero-copy">
-            <div className="hero-status">
-              <span className="live-dot" />
-              <span>Karcari Morning System</span>
-              <strong>{selected.index} / 05</strong>
-            </div>
-
-            <p className="hero-mode" key={`${selected.id}-mode`}>{selected.mode}</p>
-            <h1 key={`${selected.id}-headline`}>
-              Mornings move fast.<br />
-              <em>Breakfast can keep up.</em>
-            </h1>
-            <p className="hero-product-line" key={`${selected.id}-line`}>{selected.heroLine}</p>
-            <p className="hero-description" key={`${selected.id}-description`}>{selected.description}</p>
-
+            <p className="eyebrow hero-kicker">Karcari</p>
+            <h1 id="hero-heading">Ready-to-cook<br /><em>Indian premixes.</em></h1>
+            <p>From dosas and chillas to soups, pancakes, smoothies and festive Puran Poli, make your favourites at home with less prep.</p>
             <div className="hero-actions">
-              <a className="button button-primary" href={selected.link} target="_blank" rel="noreferrer">
-                Shop {selected.short} <Arrow />
-              </a>
-              <a className="button button-text" href="#pantry">Explore the pantry <Arrow down /></a>
-            </div>
-          </div>
-
-          <div
-            className="product-theatre"
-            ref={theatreRef}
-            onPointerMove={onPointerMove}
-            onPointerLeave={resetPointer}
-            aria-live="polite"
-          >
-            <div className="telemetry-ring" aria-hidden="true">
-              <span className="ring-label ring-label-a"><small>SOAKING</small><strong>00</strong></span>
-              <span className="ring-label ring-label-b"><small>GRINDING</small><strong>00</strong></span>
-              <span className="ring-label ring-label-c"><small>ROUTINE</small><strong>3 STEPS</strong></span>
-            </div>
-
-            <div className="ingredient-stage" aria-hidden="true">
-              {retailProducts.map((product, index) => (
-                <Image
-                  key={product.id}
-                  src={product.ingredients}
-                  alt=""
-                  fill
-                  sizes="42vw"
-                  className={index === active ? "is-active" : ""}
-                />
-              ))}
-            </div>
-
-            <div className="pack-stage">
-              {retailProducts.map((product, index) => (
-                <Image
-                  key={product.id}
-                  src={product.cutout}
-                  alt={`Karcari ${product.name} pack`}
-                  fill
-                  priority={index < 2}
-                  sizes="(max-width: 800px) 58vw, 27vw"
-                  className={index === active ? "is-active" : ""}
-                />
-              ))}
-            </div>
-
-            <div className="theatre-caption">
-              <span>{selected.name}</span>
-              <small>Ready-to-cook breakfast mix</small>
+              <a className="button hero-button" href="#premix-range">Browse premixes <span aria-hidden="true">↓</span></a>
+              <a className="hero-retail" href={RETAIL_URL} target="_blank" rel="noopener noreferrer">Shop online ↗</a>
             </div>
           </div>
         </div>
+        <button className="hero-motion" type="button" onClick={() => {
+          resetHero();
+          setMotionPaused(paused => !paused);
+        }}>{motionPaused ? "Play motion" : "Pause motion"}</button>
+      </section>
 
-        <div className="hero-switcher shell" aria-label="Select a Karcari product">
-          <div className="switcher-title"><span>Choose your morning</span><i /></div>
-          <div className="switcher-track">
-            {retailProducts.map((product, index) => (
-              <button
-                key={product.id}
-                type="button"
-                className={index === active ? "is-active" : ""}
-                onClick={() => choose(index)}
-                aria-pressed={index === active}
-              >
-                <span>{product.index}</span>
-                <strong>{product.short}</strong>
-                <i />
+      <section className="shell collection" id="premix-range" aria-labelledby="collection-heading">
+        <div className="section-heading" data-reveal>
+          <div><p className="eyebrow">The Karcari collection</p><h2 id="collection-heading">Shop by category.</h2></div>
+          <p>Breakfast staples, traditional favourites and comforting cups for busy days.</p>
+        </div>
+        <div className="catalog-toolbar">
+          <div className="product-filters" role="group" aria-label="Filter premixes">
+            {filters.map(({ id, title }) => (
+              <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>
+                {categoryLabels[id] || title}
               </button>
             ))}
           </div>
+          <small role="status">{filter === "all" ? `${visible.length} ${visible.length === 1 ? "product" : "products"}` : `${visible.length} of ${premixProducts.length} products`}</small>
         </div>
-      </section>
-
-      <section className="promise-strip" aria-label="Karcari preparation promise">
-        <div className="shell promise-grid">
-          <article><span>01</span><strong>No soaking</strong><p>Skip the overnight preparation cycle.</p></article>
-          <article><span>02</span><strong>No grinding</strong><p>Move straight from pack to batter.</p></article>
-          <article><span>03</span><strong>Just add water</strong><p>A familiar breakfast in a simpler routine.</p></article>
-        </div>
-      </section>
-
-      <section className="brand-thesis" id="thinking">
-        <div className="shell thesis-grid">
-          <div className="thesis-copy" data-reveal>
-            <p className="eyebrow">Why Karcari exists</p>
-            <h2>Traditional breakfast should not demand a traditional schedule.</h2>
-            <p>Karcari translates familiar Indian food into dependable ready-to-cook formats—so convenience does not have to feel disconnected from culture, nourishment or taste.</p>
-            <a href="#pantry" className="text-link">Meet the consumer collection <Arrow /></a>
-          </div>
-          <div className="thesis-visual" data-reveal style={theme}>
-            <div className="time-dial">
-              <span className="dial-copy"><small>PREPARATION REMOVED</small><strong>SOAK + GRIND</strong></span>
-              <div className="dial-pack"><Image src={selected.cutout} alt={`${selected.name} pack`} fill sizes="300px" /></div>
-              <i className="dial-hand" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="premium-definition">
-        <div className="shell premium-grid">
-          <div className="premium-sticky" data-reveal>
-            <p className="eyebrow">What premium means here</p>
-            <h2>Premium is not how loudly a brand announces itself.</h2>
-            <p>It is how carefully every detail removes friction, builds confidence and delivers a result people want to repeat.</p>
-          </div>
-          <div className="premium-steps">
-            <article data-reveal>
-              <span>01</span>
-              <div><small>INGREDIENT INTENT</small><h3>A product story people can understand.</h3><p>Each variant begins with a clear ingredient idea—from multigrain and millet to palak and beetroot.</p></div>
-            </article>
-            <article data-reveal>
-              <span>02</span>
-              <div><small>ROUTINE DESIGN</small><h3>Convenience that solves a real morning problem.</h3><p>No decorative complexity: the value is visible in fewer steps, easier preparation and a familiar format.</p></div>
-            </article>
-            <article data-reveal>
-              <span>03</span>
-              <div><small>REPEATABLE EXPERIENCE</small><h3>A result designed to earn the next purchase.</h3><p>Premium is the confidence that the pack, preparation and final plate will feel considered every time.</p></div>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section className="pantry" id="pantry">
-        <div className="shell section-heading" data-reveal>
-          <div><p className="eyebrow">The Karcari Pantry</p><h2>Five ways to change the morning.</h2></div>
-          <p>Select any product below. Each card opens its own exact page on Karcari.in for retail ordering and payment.</p>
-        </div>
-
-        <div className="pantry-grid shell">
-          {retailProducts.map((product, index) => (
-            <article className={`pantry-card ${index === active ? "is-selected" : ""}`} key={product.id} data-reveal style={{ "--card-accent": product.accent, "--card-deep": product.deep }}>
-              <a className="pantry-card-link" href={product.link} target="_blank" rel="noreferrer" aria-label={`Shop ${product.name} on Karcari.in`}>
-                <div className="pantry-media">
-                  <Image src={product.scene} alt={`${product.name} ingredients and serving`} fill sizes="(max-width: 800px) 92vw, 38vw" />
-                  <div className="pantry-pack"><Image src={product.cutout} alt={`${product.name} pack`} fill sizes="180px" /></div>
-                  <span className="pantry-number">{product.index}</span>
-                </div>
-                <div className="pantry-copy">
-                  <div><small>{product.mode}</small><h3>{product.name}</h3></div>
-                  <p>{product.description}</p>
-                  <span className="pantry-action">Shop exact product <Arrow /></span>
-                </div>
-              </a>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="ingredient-studio" id="ingredients">
-        <div className="shell ingredient-heading" data-reveal>
-          <div><p className="eyebrow">The Ingredient Studio</p><h2>From harvest to production line.</h2></div>
-          <div><p>Dehydrated powders and flakes for manufacturers, health brands, commercial kitchens, distributors and private-label partners.</p><a href={enquiryLink("Complete Dehydrated Ingredient Range")} className="text-link">Enquire about all products <Arrow /></a></div>
-        </div>
-
-        <div className="ingredient-grid shell">
-          {ingredientProducts.map((product) => (
-            <article className="ingredient-card" key={product.id} data-reveal style={{ "--ingredient-accent": product.accent }}>
-              <div className="ingredient-image">
-                <Image src={product.image} alt={product.name} fill sizes="(max-width: 800px) 92vw, 31vw" />
-                <span>{product.badge}</span>
+        {visible.length ? <div className="product-grid filtered-grid" key={filter}>
+          {visible.map((product, index) => (
+            <article className="product-card" key={product.id} style={{ "--card-delay": `${Math.min(index, 5) * 35}ms` }}>
+              <div className="product-photo" style={{ backgroundColor: product.tint || undefined }}>
+                {product.image === "/products/actual/jowar-dhirde.webp" ? (
+                  <div className="jowar-photo-frame">
+                    <Image src={product.image} alt={product.name} width={984} height={1500} sizes="(max-width: 540px) 42vw, (max-width: 900px) 22vw, 14vw" />
+                  </div>
+                ) : product.image && <Image src={product.image} alt={product.name} fill sizes="(max-width: 540px) 92vw, (max-width: 900px) 45vw, 29vw" />}
+                {product.badge && <span className="product-badge">{product.badge}</span>}
               </div>
-              <div className="ingredient-copy">
-                <small>{product.category}</small>
+              <div className="product-copy">
+                <p className="eyebrow">{product.category}</p>
                 <h3>{product.name}</h3>
-                <p>{product.description}</p>
-                <div className="spec-list">{product.specs.map((spec) => <span key={spec}>{spec}</span>)}</div>
-                <div className="ingredient-foot">
-                  <a href={enquiryLink(product.name)} className="ingredient-enquire"><Mail /> Enquire now</a>
-                  <strong><Check /> {product.proof}</strong>
+                {(product.packSize || product.yieldLabel) && <p className="pack-details">{[product.packSize, product.yieldLabel].filter(Boolean).join(" · ")}</p>}
+                {(product.description || product.highlights?.length > 0) && <details>
+                  <summary>Product details</summary>
+                  <p>{product.description}</p>
+                  {product.highlights?.length > 0 && <ul>{product.highlights.map((highlight, index) => <li key={index}>{highlight}</li>)}</ul>}
+                </details>}
+                <div className="product-links">
+                  {product.link ? <a href={product.link} target="_blank" rel="noopener noreferrer">Shop retail ↗</a>
+                    : <a href={buildWhatsappLink()} target="_blank" rel="noopener noreferrer">WhatsApp ↗</a>}
+                  <a href={buildEmailLink(`Karcari Enquiry — ${product.name}`)}>Email enquiry ↗</a>
+                  {product.indiaMartUrl && <a href={product.indiaMartUrl} target="_blank" rel="noopener noreferrer">IndiaMART ↗</a>}
                 </div>
               </div>
             </article>
           ))}
+        </div> : <p className="empty-collection">No premixes are currently available in this category.</p>}
+      </section>
+
+      <section className="story" id="our-story" aria-labelledby="story-heading">
+        <div className="shell story-grid" data-reveal>
+          <div className="story-photo"><Image src="/products/lifestyle/puran-poli.webp" alt="Karcari Puran Poli Premix with prepared puran poli and dal" fill sizes="(max-width: 760px) 100vw, 48vw" /></div>
+          <div className="story-copy">
+            <p className="eyebrow">Our story</p>
+            <h2 id="story-heading">Healthy Living, Made Simpler.</h2>
+            <p className="story-lede">Karcari began with a mother’s wish to make healthy food easier for her children.</p>
+            <p>Our founder, Poonam, was travelling the world while balancing work and home as a mother of two daughters. She wanted nutritious, wholesome food to be part of everyday life, but fresh meals take time, and busy families rarely have enough of it.</p>
+            <p>So she created Karcari.</p>
+            <p>The name comes from Sanskrit, <strong>Karcari (कर्चरी)</strong>, meaning the art of dietetics and home-style cooking. Rooted in <strong>Pakashastra</strong>, the ancient wisdom of Indian culinary science, we use modern technology to bring time-honoured food traditions to today’s kitchens. Karcari Products is <strong>FSSAI licensed</strong>.</p>
+            <p>From dosa, pancake and chilla premixes to soups, Puran Poli and smoothies like Apple Beetroot Carrot and Ash Gourd Amla Carrot, our range helps you spend <strong>less time preparing and more time enjoying good food together.</strong></p>
+            <p>Because life is busy, eating better shouldn’t be difficult.</p>
+            <p className="story-signoff">Karcari: Good Food, Made Easier.</p>
+          </div>
         </div>
       </section>
 
-      <section className="business" id="business">
-        <div className="business-backdrop" aria-hidden="true"><span>KARCARI</span></div>
-        <div className="shell business-head" data-reveal>
-          <p className="eyebrow">Built for business conversations</p>
-          <h2>One portfolio.<br />Multiple commercial possibilities.</h2>
+      <section className="shell collection" id="powders" aria-labelledby="ingredients-heading">
+        <div className="section-heading" data-reveal>
+          <div><p className="eyebrow">For food businesses</p><h2 id="ingredients-heading">Ingredient powders & flakes.</h2></div>
+          <p>Explore bulk ingredients for manufacturing, food service and commercial kitchens.</p>
         </div>
-        <div className="shell business-grid">
-          {[
-            ["Distribution", "Bring Karcari consumer products to new markets and retail networks.", "Distribution Partnership Enquiry"],
-            ["Institutional supply", "Discuss food-service, hospitality, corporate and high-volume requirements.", "Institutional Supply Enquiry"],
-            ["Private label", "Explore product-development and manufacturing conversations for your brand.", "Private Label Enquiry"]
-          ].map(([title, copy, subject], index) => (
-            <a href={`mailto:connect@karcari.com?subject=${encodeURIComponent(subject)}`} key={title} data-reveal>
-              <span>0{index + 1}</span><h3>{title}</h3><p>{copy}</p><strong>Start conversation <Arrow /></strong>
-            </a>
+        {ingredientProducts.length ? <div className="product-grid ingredient-grid">
+          {ingredientProducts.map(item => (
+            <article className="product-card" key={item.id} data-reveal>
+              <div className="product-photo">
+                {item.image && <Image src={item.image} alt={item.name} fill sizes="(max-width: 540px) 92vw, (max-width: 900px) 45vw, 29vw" />}
+                {item.badge && <span className="product-badge">{item.badge}</span>}
+              </div>
+              <div className="product-copy">
+                <p className="eyebrow">{item.category}</p><h3>{item.name}</h3>
+                <p>{item.description}</p>
+                {item.specs?.length > 0 && <ul className="ingredient-specs">{item.specs.map((spec, index) => <li key={index}>{spec}</li>)}</ul>}
+                {item.proof && <p className="pack-details">{item.proof}</p>}
+                <div className="product-links"><a href={buildEmailLink(`Bulk Enquiry — ${item.name}`)}>Bulk enquiry ↗</a></div>
+              </div>
+            </article>
+          ))}
+        </div> : <p className="empty-collection">Contact us for current ingredient availability.</p>}
+      </section>
+
+      <section className="partnerships shell" id="business" data-reveal aria-labelledby="business-heading">
+        <div><p className="eyebrow">Partnerships</p><h2 id="business-heading">Work with Karcari.</h2></div>
+        <div className="partnership-links">
+          {["Distribution", "Private label", "Institutional supply"].map(subject => (
+            <a key={subject} href={buildEmailLink(`${subject} enquiry`)}>{subject} <span aria-hidden="true">↗</span></a>
           ))}
         </div>
-        <div className="shell business-email" data-reveal>
-          <span>All business enquiries</span>
-          <a href="mailto:connect@karcari.com">connect@karcari.com <Arrow /></a>
+      </section>
+      {!INDIA_MART_URL && (
+        <section className="shell marketplace" id="indiamart" aria-labelledby="indiamart-heading" data-reveal>
+          <h2 id="indiamart-heading">Karcari on IndiaMART</h2>
+          {indiaMartProducts.length > 0 ? <div className="partnership-links">
+            {indiaMartProducts.map(product => <a key={product.id} href={product.indiaMartUrl} target="_blank" rel="noopener noreferrer">{product.name} <span aria-hidden="true">↗</span></a>)}
+          </div> : <a href={buildEmailLink("Karcari IndiaMART enquiry")}>Ask about IndiaMART listings ↗</a>}
+        </section>
+      )}
+      <section className="reviews" id="reviews" aria-labelledby="reviews-heading">
+        <div className="shell reviews-inner" data-reveal>
+          <div>
+            <p className="eyebrow">Customer reviews</p>
+            <h2 id="reviews-heading">Tried Karcari?</h2>
+            <p>Tell us what you made and how it turned out.</p>
+          </div>
+          <a className="button" href={buildEmailLink("Karcari product review", "Hello Karcari team,\n\nProduct I tried: \nMy review: \n\n")}>Email your review <span aria-hidden="true">↗</span></a>
         </div>
       </section>
-    </>
+      <FloatingWhatsApp heroRef={heroRef} />
+    </div>
   );
 }
